@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'api_config.dart';
 
-// Create a Form widget.
 class RegisterForm extends StatefulWidget {
   const RegisterForm({super.key});
 
@@ -11,115 +12,284 @@ class RegisterForm extends StatefulWidget {
   }
 }
 
-// Create a corresponding State class.
-// This class holds data related to the form.
 class RegisterFormState extends State<RegisterForm> {
-  // Create a global key that uniquely identifies the Form widget
-  // and allows validation of the form.
-  //
-  // Note: This is a GlobalKey<FormState>,
-  // not a GlobalKey<RegisterFormState>.
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      var url = ApiConfig.createUri(ApiConfig.registerEndpoint);
+      var response = await http.post(
+        url,
+        headers: ApiConfig.getHeaders(),
+        body: json.encode({
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+        }),
+      );
+
+      print('Register response status: ${response.statusCode}');
+      print('Register response body: ${response.body}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('¡Registro exitoso! Ahora puedes iniciar sesión'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Regresar a la pantalla de login
+        Navigator.pop(context);
+      } else {
+        try {
+          final responseData = json.decode(response.body);
+          final message = responseData['message'] ?? 'Error al registrarse';
+          _showError('$message (${response.statusCode})');
+        } catch (e) {
+          _showError('Error al registrarse (${response.statusCode})');
+        }
+      }
+    } catch (e) {
+      print('Register error: $e');
+      _showError('Error de conexión: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    String? _name;
-    String? _email;
-    String? _password;
-
-    // Build a Form widget using the _formKey created above.
     return Scaffold(
-      // The Scaffold
-      appBar: AppBar(title: Text('My Form Page')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                onSaved: (newValue) => _name = newValue,
-                // The validator receives the text that the user has entered.
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El nombre completo es requerido';
-                  }
-                  return null;
-                },
-                decoration: const InputDecoration(
-                  icon: Icon(Icons.person),
-                  hintText: 'Nombres y Apellidos',
-                  labelText: 'Nombre completo *',
-                ),
+      appBar: AppBar(
+        title: const Text('Crear Cuenta'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 32),
+            
+            // Título
+            const Text(
+              'Únete a nosotros',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
               ),
-              TextFormField(
-                onSaved: (newValue) => _email = newValue,
-                decoration: const InputDecoration(
-                  icon: Icon(Icons.person),
-                  hintText: 'example.smith@gmail.com',
-                  labelText: 'Dirección de correo *',
-                ),
-                keyboardType:
-                    TextInputType.emailAddress, // Suggests email keyboard
-                validator: (String? value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingresa una dirección de correo';
-                  }
-                  // Basic email validation using a regular expression
-                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                    return 'Verifica tu dirección de correo';
-                  }
-                  return null; // Input is valid
-                },
+            ),
+            
+            const SizedBox(height: 8),
+            
+            Text(
+              'Crea tu cuenta para comenzar a organizar tus tareas',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
               ),
-              TextFormField(
-                onSaved: (newValue) => _password = newValue,
-                obscureText: true,
-                // The validator receives the text that the user has entered.
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Almenos 6 caracteres incluyendo numeros y letras minuctulas y mayusculas';
-                  }
-                  return null;
-                },
-                decoration: const InputDecoration(
-                  icon: Icon(Icons.person),
-                  hintText: 'No uses tu nombre o correo para tu contraseña',
-                  labelText: 'Contraseña *',
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    // Validate returns true if the form is valid, or false otherwise.
-                    if (_formKey.currentState!.validate()) {
-                      _formKey.currentState!.save();
-                      // If the form is valid, display a snackbar. In the real world,
-                      // you'd often call a server or save the information in a database.
-                      print('Email: $_email, Password: $_password');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Procesando su registro')),
-                      );
-                      var url = Uri.http('192.168.1.10:3000', '/auth/register');
-                      var response = await http.post(
-                        url,
-                        body: {
-                          'email': _email,
-                          'password': _password,
-                          'name': _name,
+              textAlign: TextAlign.center,
+            ),
+            
+            const SizedBox(height: 32),
+            
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Campo de nombre
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre completo',
+                      hintText: 'Tu nombre y apellidos',
+                      prefixIcon: Icon(Icons.person),
+                      border: OutlineInputBorder(),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'El nombre es obligatorio';
+                      }
+                      if (value.trim().length < 3) {
+                        return 'El nombre debe tener al menos 3 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Campo de email
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      labelText: 'Correo electrónico',
+                      hintText: 'ejemplo@correo.com',
+                      prefixIcon: Icon(Icons.email),
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (String? value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Ingresa tu correo electrónico';
+                      }
+                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                        return 'Ingresa un correo válido';
+                      }
+                      return null;
+                    },
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Campo de contraseña
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Contraseña',
+                      hintText: 'Al menos 6 caracteres',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
                         },
-                      );
-                      print(response);
-                      _formKey.currentState?.reset();
-                    }
-                  },
-                  child: const Text('Registrar'),
-                ),
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Ingresa una contraseña';
+                      }
+                      if (value.length < 6) {
+                        return 'La contraseña debe tener al menos 6 caracteres';
+                      }
+                      return null;
+                    },
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Campo de confirmar contraseña
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    obscureText: _obscureConfirmPassword,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmar contraseña',
+                      hintText: 'Repite tu contraseña',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
+                      border: const OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Confirma tu contraseña';
+                      }
+                      if (value != _passwordController.text) {
+                        return 'Las contraseñas no coinciden';
+                      }
+                      return null;
+                    },
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Botón de registro
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _register,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Text(
+                              'CREAR CUENTA',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Botón para volver al login
+                  TextButton(
+                    onPressed: _isLoading ? null : () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      '¿Ya tienes cuenta? Inicia sesión',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

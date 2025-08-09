@@ -102,7 +102,7 @@ class RegisterTaskFormState extends State<RegisterTaskForm> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Procesando su registro')),
                       );
-                      var url = Uri.http('192.168.1.10:3000', '/tasks');
+                      var url = Uri.http('192.168.1.3:3000', '/tasks');
                       var response = await http.post(
                         url,
                         headers: <String, String>{
