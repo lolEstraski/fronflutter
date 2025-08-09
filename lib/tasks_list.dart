@@ -212,6 +212,10 @@ class TasksListState extends State<TasksList> {
             icon: const Icon(Icons.refresh),
             onPressed: _loadTasks,
           ),
+           IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            onPressed: _logout,
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _navigateToCreateTask,
@@ -369,6 +373,10 @@ class TasksListState extends State<TasksList> {
       arguments: {'token': widget.token, 'task': task},
     );
     if (result == true) _loadTasks();
+  }
+
+  void _logout() {
+    Navigator.pushReplacementNamed(context, '/');
   }
 }
 
