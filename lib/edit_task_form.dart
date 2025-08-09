@@ -16,7 +16,7 @@ class EditTaskFormState extends State<EditTaskForm> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _isLoading = false;
-  bool _isComplete = false;
+  bool _isCompleted = false;
   
   Task? _task;
   String? _token;
@@ -32,7 +32,7 @@ class EditTaskFormState extends State<EditTaskForm> {
       // Inicializar los controladores con los datos existentes
       _titleController.text = _task!.title;
       _descriptionController.text = _task!.description;
-      _isComplete = _task!.isComplete;
+      _isCompleted = _task!.isCompleted;
     }
   }
 
@@ -50,13 +50,13 @@ class EditTaskFormState extends State<EditTaskForm> {
 
     try {
       var url = ApiConfig.createUri('${ApiConfig.tasksEndpoint}/${_task!.id}');
-      var response = await http.patch(
+      var response = await http.put(
         url,
         headers: ApiConfig.getHeaders(token: _token),
         body: json.encode({
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),
-          'isComplete': _isComplete,
+          'isCompleted': _isCompleted,
         }),
       );
 
@@ -180,8 +180,8 @@ class EditTaskFormState extends State<EditTaskForm> {
                   child: Row(
                     children: [
                       Icon(
-                        _isComplete ? Icons.check_circle : Icons.radio_button_unchecked,
-                        color: _isComplete ? Colors.green : Colors.grey,
+                        _isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                        color: _isCompleted ? Colors.green : Colors.grey,
                         size: 28,
                       ),
                       const SizedBox(width: 12),
@@ -194,9 +194,9 @@ class EditTaskFormState extends State<EditTaskForm> {
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
                             Text(
-                              _isComplete ? 'Completada' : 'Pendiente',
+                              _isCompleted ? 'Completada' : 'Pendiente',
                               style: TextStyle(
-                                color: _isComplete ? Colors.green : Colors.orange,
+                                color: _isCompleted ? Colors.green : Colors.orange,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -204,9 +204,9 @@ class EditTaskFormState extends State<EditTaskForm> {
                         ),
                       ),
                       Switch(
-                        value: _isComplete,
+                        value: _isCompleted,
                         onChanged: (value) {
-                          setState(() => _isComplete = value);
+                          setState(() => _isCompleted = value);
                         },
                         activeColor: Colors.green,
                       ),

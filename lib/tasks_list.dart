@@ -4,16 +4,16 @@ import 'dart:convert';
 import 'api_config.dart';
 
 class Task {
-  final int id;
+  final String id;
   final String title;
   final String description;
-  bool isComplete;
+  bool isCompleted;
 
   Task({
     required this.id,
     required this.title,
     required this.description,
-    required this.isComplete,
+    required this.isCompleted,
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -21,7 +21,7 @@ class Task {
       id: json['id'] ?? 0,
       title: json['title'] ?? 'Sin título',
       description: json['description'] ?? 'Sin descripción',
-      isComplete: json['isComplete'] ?? json['completed'] ?? false,
+      isCompleted: json['isCompleted'] ?? json['completed'] ?? false,
     );
   }
 
@@ -29,7 +29,7 @@ class Task {
     'id': id,
     'title': title,
     'description': description,
-    'isComplete': isComplete,
+    'isCompleted': isCompleted,
   };
 }
 
@@ -116,20 +116,24 @@ class TasksListState extends State<TasksList> {
   Future<void> _toggleTaskComplete(Task task) async {
     try {
       final url = ApiConfig.createUri('${ApiConfig.tasksEndpoint}/${task.id}');
-      final response = await http.patch(
+      var response = await http.put(
         url,
         headers: ApiConfig.getHeaders(token: widget.token),
-        body: json.encode({'isComplete': !task.isComplete}),
+        body: json.encode({
+          'title': task.title,
+          'description': task.description,
+          'isCompleted': !task.isCompleted,
+        }),
       );
 
       if (response.statusCode == 200) {
         setState(() {
-          task.isComplete = !task.isComplete;
+          task.isCompleted = !task.isCompleted;
           _filterTasks();
         });
-        _showSuccess(task.isComplete ? 'Tarea completada' : 'Tarea pendiente');
+        _showSuccess(task.isCompleted ? 'Tarea completada' : 'Tarea pendiente');
       } else {
-        _showError('Error al actualizar (${response.statusCode})');
+        _showError('Error al completar tarea: (${response.statusCode})');
       }
     } catch (e) {
       _showError('Error: ${e.toString()}');
@@ -264,7 +268,7 @@ class TasksListState extends State<TasksList> {
   }
 
   Widget _buildStatsRow() {
-    final completed = _tasks.where((t) => t.isComplete).length;
+    final completed = _tasks.where((t) => t.isCompleted).length;
     final pending = _tasks.length - completed;
     
     return Padding(
@@ -285,13 +289,13 @@ class TasksListState extends State<TasksList> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: Checkbox(
-          value: task.isComplete,
+          value: task.isCompleted,
           onChanged: (_) => _toggleTaskComplete(task),
         ),
         title: Text(
           task.title,
           style: TextStyle(
-            decoration: task.isComplete ? TextDecoration.lineThrough : null,
+            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
           ),
         ),
         subtitle: Text(task.description),

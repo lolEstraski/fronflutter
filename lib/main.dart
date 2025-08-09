@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tasks_app/login_form.dart';
 import 'package:tasks_app/register_form.dart';
-import 'package:tasks_app/register_task_form.dart';
 import 'package:tasks_app/tasks_list.dart';
 import 'package:tasks_app/create_task_form.dart';
 import 'package:tasks_app/edit_task_form.dart';
